@@ -1,0 +1,93 @@
+{
+ "b0ae4373c77a87918f593c9ff37a8f66310a508b43793ccf464fe95225ee86e1:25da4be5ec69": {
+  "status": "ok",
+  "source": "gemini-text",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": []
+ },
+ "76a6c89e58c51bbef47c4fe8cbbf1c3354afed32e9fd68a05c06a04b3a7fb101:c4b19783e3c7": {
+  "status": "ok",
+  "source": "gemini-text",
+  "detail": "Extracted by model.",
+  "document_type": "dba_or_parent_proof",
+  "legal_name": null,
+  "tax_id": null,
+  "signed": null,
+  "signed_date": "2026-09-02",
+  "entity_names": [
+   "Orion Components LLC",
+   "Orion Components Holdings LLC"
+  ]
+ },
+ "1b0cef2de20accc6717baf63441d5555c33a61120f4ce1d9e8f424ac0c455bfa:c4b19783e3c7": {
+  "status": "ok",
+  "source": "gemini-text",
+  "detail": "Extracted by model.",
+  "document_type": "utility_bill",
+  "legal_name": "Orion Components LLC",
+  "tax_id": null,
+  "signed": null,
+  "signed_date": null,
+  "entity_names": []
+ },
+ "4e4c42932417b593e0f600e91f0e39a9d9d73812a7d0d2c6684a5fa3904bfeb2:c4b19783e3c7": {
+  "status": "ok",
+  "source": "gemini-text",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Shadow Supplies LLC",
+  "tax_id": "55-5555555",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": []
+ },
+ "51caa4afa775bea0f55d339f332d6585291f362ead18395b28de47e010bbc3a3:c4b19783e3c7": {
+  "status": "ok",
+  "source": "gemini-vision",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": []
+ },
+ "f831fdb8f97cfc2e150c365233bb460d00653d8dcf38b40f317b8a3f96f09e25:c4b19783e3c7": {
+  "status": "ok",
+  "source": "gemini-text",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456780",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": []
+ },
+ "74fe5963dc7b99c7aa83fe1c60babe1bd499eb4227859c536e9a54f791740f84:c4b19783e3c7": {
+  "status": "ok",
+  "source": "gemini-text",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": false,
+  "signed_date": null,
+  "entity_names": []
+ },
+ "b0ae4373c77a87918f593c9ff37a8f66310a508b43793ccf464fe95225ee86e1:c4b19783e3c7": {
+  "status": "ok",
+  "source": "gemini-text",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": []
+ }
+}

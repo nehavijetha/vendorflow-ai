@@ -1,0 +1,8 @@
+streamlit
+sqlalchemy
+rapidfuzz
+pypdf
+pymupdf
+pydantic
+reportlab
+pytest

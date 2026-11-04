@@ -1,0 +1,12 @@
+# secrets and local state: never commit
+.env
+vendorflow.db
+uploads/
+
+# the pre-read answers for the synthetic sample PDFs ARE committed, so the demo is instant online
+.cache/*
+!.cache/extractions.json
+
+__pycache__/
+.pytest_cache/
+*.pyc
