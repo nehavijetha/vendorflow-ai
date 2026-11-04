@@ -1,4 +1,5 @@
 """Typed contracts at the boundaries: bad data must fail where it enters."""
+from stubs import StubModel
 from pathlib import Path
 
 import pytest
@@ -76,7 +77,7 @@ def session(tmp_path):
 
 def test_an_invalid_submission_stops_before_any_run_is_created(session):
     with pytest.raises(PipelineError, match="documents"):
-        run_pipeline(session, {"company_name": "Acme", "documents": "w9.pdf"}, use_llm=False)
+        run_pipeline(session, {"company_name": "Acme", "documents": "w9.pdf"}, client=StubModel(), use_llm=True)
     assert session.scalars(select(Run)).all() == []
 
 
@@ -85,7 +86,7 @@ def test_the_pipeline_accepts_a_submission_object_and_numbers_for_ids(session, t
     sub = Submission(company_name="Orion Components LLC", country="United States", tax_id="12-3456789",
                      bank_account_name="Orion Components LLC", bank_account_num=555666777,
                      documents=[tmp_path / "w9_valid.pdf"])
-    result = run_pipeline(session, sub, use_llm=False)
+    result = run_pipeline(session, sub, client=StubModel(), use_llm=True)
     assert result["status"] == "APPROVED"
     assert session.get(Run, result["run_id"]).input_json.count('"555666777"') == 1
 
@@ -95,9 +96,9 @@ def test_a_partial_resubmission_does_not_blank_the_fields_it_did_not_send(sessio
     first = run_pipeline(session, {"company_name": "Orion Components LLC", "country": "United States",
                                    "tax_id": "12-3456789", "bank_account_name": "Orion Components Holdings LLC",
                                    "bank_account_num": "000555666777", "documents": [str(tmp_path / "w9_valid.pdf")]},
-                         use_llm=False)
+                         client=StubModel(), use_llm=True)
     second = run_pipeline(session, {"supporting_documents": [str(tmp_path / "parent_entity_proof.pdf")]},
-                          parent_run_id=first["run_id"], use_llm=False)
+                          parent_run_id=first["run_id"], client=StubModel(), use_llm=True)
     assert second["status"] == "APPROVED"
     assert second["parent_run_id"] == first["run_id"]
 
@@ -126,7 +127,7 @@ def test_model_output_wrong_types_are_rejected_with_the_field_named(bad, field):
 def test_model_output_extra_keys_are_ignored_and_missing_optionals_default():
     assert validate({"legible": True, "document_type": "other", "model_notes": "hi"}) == {
         "legible": True, "document_type": "other", "legal_name": None, "tax_id": None, "signed": None,
-        "signed_date": None, "entity_names": []}
+        "signed_date": None, "entity_names": [], "structure": None}
 
 
 def test_a_null_entity_list_is_accepted():
@@ -137,7 +138,7 @@ def test_a_null_entity_list_is_accepted():
 
 def test_build_extracted_output_is_a_valid_extraction(tmp_path):
     build_all(tmp_path)
-    result = build_extracted(tmp_path / "w9_valid.pdf", [tmp_path / "parent_entity_proof.pdf"], use_llm=False)
+    result = build_extracted(tmp_path / "w9_valid.pdf", [tmp_path / "parent_entity_proof.pdf"], client=StubModel(), use_llm=True)
     assert Extraction.model_validate(result).status == "ok" and result["supporting_documents"][0]["path"]
 
 
@@ -151,5 +152,5 @@ def test_extraction_status_is_one_of_four_values():
 
 def test_paths_in_supporting_documents_survive_as_text(tmp_path):
     build_all(tmp_path)
-    result = build_extracted(tmp_path / "w9_valid.pdf", [Path(tmp_path / "parent_entity_proof.pdf")], use_llm=False)
+    result = build_extracted(tmp_path / "w9_valid.pdf", [Path(tmp_path / "parent_entity_proof.pdf")], client=StubModel(), use_llm=True)
     assert isinstance(result["supporting_documents"][0]["path"], str)

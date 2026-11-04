@@ -18,10 +18,12 @@ from db.vendors import onboard_vendor
 from logic import checks as check_lib
 from logic.cache import cached_extractor
 from logic.decision import decide
+from logic import config
 from logic.extract import build_extracted, default_client
 from logic.grounding import ground_extraction
 from logic.message import draft_message
 from logic.models import Extraction, Submission
+from logic.names import normalize_country
 
 STAGES = {
     "S1": "Intake",
@@ -141,7 +143,8 @@ def run_pipeline(session, submission, parent_run_id=None, client=None, use_llm=T
         record("S3", "started")
         if data["documents"]:
             extracted = build_extracted(data["documents"][0], data["supporting_documents"],
-                                        client=client, use_llm=False, extractor=extractor)
+                                        client=client, use_llm=False, extractor=extractor,
+                                        expected_type=config.REQUIRED_DOCUMENT.get(normalize_country(data.get("country"))))
         else:
             extracted = Extraction(status="missing").model_dump()
         run.extracted_json = json.dumps(extracted, default=str)

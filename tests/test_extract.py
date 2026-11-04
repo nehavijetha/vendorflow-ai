@@ -4,6 +4,7 @@ import json
 import pytest
 
 from helpers import clean_history
+from stubs import StubModel
 from logic.checks import evaluate_submission
 from logic.decision import decide
 from logic.extract import ExtractionError, build_extracted, extract_document, offline_parse, validate
@@ -68,7 +69,9 @@ def test_api_failure_on_text_pdf_falls_back_and_says_so(samples):
     result = extract_document(samples / "w9_valid.pdf", FakeClient(error=ExtractionError("HTTP 429")))
     assert result["status"] == "ok" and result["source"] == "offline_parser"
     assert "HTTP 429" in result["detail"]
-    assert result["tax_id"] == "12-3456789" and result["signed"] is True
+    # The regex parser cannot read the printed IRS layout (the EIN sits in separate cells), so it finds
+    # nothing it could be fooled by; the missing values keep the run from being approved.
+    assert result["document_type"] == "w9" and result["tax_id"] is None and result["signed"] is False
 
 
 def test_api_failure_on_scan_is_an_error_never_a_pass(samples):
@@ -91,16 +94,21 @@ def test_offline_parser_on_every_sample(samples):
     def parse(name):
         return extract_document(samples / name, use_llm=False)
 
-    valid = parse("w9_valid.pdf")
-    assert (valid["document_type"], valid["legal_name"], valid["tax_id"], valid["signed"], valid["signed_date"]) == (
-        "w9", "Orion Components LLC", "12-3456789", True, "2026-10-28")
-    unsigned = parse("w9_unsigned.pdf")
-    assert unsigned["signed"] is False and unsigned["signed_date"] is None
-    assert parse("w9_tax_mismatch.pdf")["tax_id"] == "12-3456780"
+    for name in ("w9_valid.pdf", "w9_unsigned.pdf", "w9_tax_mismatch.pdf", "w9_meridian.pdf"):
+        genuine = parse(name)  # the printed IRS layout: a keyword parser reads the type and nothing else
+        assert genuine["document_type"] == "w9" and genuine["tax_id"] is None and genuine["legal_name"] is None
     assert parse("utility_bill.pdf")["document_type"] == "utility_bill"
     proof = parse("parent_entity_proof.pdf")
     assert proof["document_type"] == "dba_or_parent_proof"
     assert proof["entity_names"] == ["Orion Components LLC", "Orion Components Holdings LLC"]
+
+
+def test_the_keyword_parser_is_fooled_by_fakes_which_is_why_authenticity_exists(samples):
+    """A page that only says 'Form W-9' reads as a perfect W-9 to a keyword parser."""
+    fake = extract_document(samples / "spoof_fake_w9.pdf", use_llm=False)
+    assert (fake["document_type"], fake["tax_id"], fake["signed"]) == ("w9", "12-3456789", True)
+    letter = extract_document(samples / "spoof_letter_mentions_w9.pdf", use_llm=False)
+    assert letter["document_type"] == "w9"  # a letter that merely mentions the form
 
 
 def test_offline_parse_unknown_text():
@@ -114,15 +122,17 @@ VENDORS = [{"id": 1, "legal_name": "Northwind Traders Inc", "tax_id": "98-765432
             "bank_account": "000111222333", "status": "active"}]
 
 
-def decide_for(samples, primary, supporting=(), submission=SUBMISSION):
-    extracted = build_extracted(samples / primary, [samples / s for s in supporting], use_llm=False)
+def decide_for(samples, primary, supporting=(), submission=SUBMISSION, client="stub"):
+    client = StubModel() if client == "stub" else client
+    extracted = build_extracted(samples / primary, [samples / s for s in supporting], client=client, use_llm=False,
+                                expected_type="w9")
     return decide(evaluate_submission(submission, extracted, VENDORS, history=clean_history(submission))), extracted
 
 
 def test_end_to_end_happy_path_from_real_pdf(samples):
     decision, extracted = decide_for(samples, "w9_valid.pdf")
     assert decision["status"] == "APPROVED"
-    assert extracted["sources"] == ["w9_valid.pdf: offline_parser"]
+    assert extracted["sources"] == ["w9_valid.pdf: gemini-text+layout"]
 
 
 def test_end_to_end_unsigned_w9(samples):
@@ -141,7 +151,7 @@ def test_end_to_end_wrong_document(samples):
 
 
 def test_end_to_end_scan_without_vision_is_pending_with_error(samples):
-    decision, _ = decide_for(samples, "w9_scanned.pdf")
+    decision, _ = decide_for(samples, "w9_scanned.pdf", client=None)
     assert decision["status"] == "PENDING" and decision["technical_errors"]
 
 

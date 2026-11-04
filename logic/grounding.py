@@ -16,11 +16,9 @@ The second rule is only valid because the extraction request never contains the 
 Only names and tax IDs are grounded. Dates and the signature flag are model judgements with no
 literal text to match, so they are covered by the verification checks instead.
 """
-import unicodedata
-
 from .checks import make_finding
 from .extract import MIN_TEXT_CHARS, read_text
-from .names import normalize_name, normalize_tax_id
+from .names import normalize_name, normalize_tax_id, squash  # noqa: F401  (squash stays importable from here)
 
 PRIMARY_ID = "check_extraction_grounding"
 SUPPORTING_ID = "check_supporting_grounding"
@@ -34,12 +32,6 @@ SCAN_MISMATCH_REQUEST = (
     "and upload a clear copy of the document."
 )
 SCAN_NOTE = "read from scan, confirmed against form"
-
-
-def squash(text):
-    """Lowercase ASCII letters and digits only, so spacing, hyphens and accents cannot hide a match."""
-    ascii_text = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
-    return "".join(ch for ch in ascii_text.lower() if ch.isalnum())
 
 
 def _read(path, reader):

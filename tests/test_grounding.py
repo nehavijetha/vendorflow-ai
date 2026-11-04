@@ -3,6 +3,7 @@ import pytest
 
 from db.models import make_session_factory
 from db.seed import seed_vendors
+from stubs import LAYOUT_ON
 from logic.extract import build_extracted
 from logic.grounding import PRIMARY_ID, SCAN_NOTE, SUPPORTING_ID, ground_extraction, squash
 from pipeline.runner import run_pipeline
@@ -23,7 +24,11 @@ class Model:
 
     def generate(self, parts):
         text = parts[0]["text"]
-        return self.proof if "Certificate of Ownership" in text else self.primary
+        if "Certificate of Ownership" in text:
+            return self.proof
+        if any(p.get("text", "").startswith("REFERENCE") for p in parts):  # shown the official form: it sees the layout
+            return {**self.primary, "structure": {**LAYOUT_ON, "revision_text": "Rev. March 2024"}}
+        return self.primary
 
     def write(self, system, prompt):
         return "Thanks for your submission; we need a little more."

@@ -9,6 +9,7 @@ from db.models import Review, Run, Vendor, make_session_factory
 from db.reviews import add_review
 from db.seed import seed_vendors
 from pipeline.runner import run_pipeline
+from stubs import StubModel
 from scripts.make_sample_pdfs import build_all
 from ui import presets
 from ui.data import kpis, reset_demo, review_queue, run_detail, runs_dataframe, save_upload
@@ -19,10 +20,18 @@ ROOT = Path(__file__).resolve().parent.parent
 @pytest.fixture
 def app(tmp_path, monkeypatch):
     monkeypatch.setenv("VENDORFLOW_DB", str(tmp_path / "ui.db"))
+    monkeypatch.setenv("VENDORFLOW_CACHE", str(tmp_path / "cache.json"))  # never touch the real cache
+    monkeypatch.setattr("pipeline.runner.default_client", lambda: StubModel())  # never touch the network
     at = AppTest.from_file(str(ROOT / "streamlit_app.py"), default_timeout=60)
-    at.session_state["use_ai"] = False  # never call the network from tests
+    at.session_state["use_ai"] = True
     at.session_state["step_delay"] = 0.0
     return at.run()
+
+
+@pytest.fixture
+def app_without_ai(app):
+    app.session_state["use_ai"] = False
+    return app.run()
 
 
 def run_scenario(at, key):
@@ -38,8 +47,9 @@ def test_app_loads_with_every_preset(app):
 
 
 @pytest.mark.parametrize("key,alert", [
-    ("happy", "success"), ("dba", "warning"), ("wrongco", "warning"), ("dupbank", "warning"),
-    ("wrongdoc", "warning"), ("unsigned", "warning"), ("taxmismatch", "warning"), ("blocked", "error"),
+    ("happy", "success"), ("dba", "warning"), ("wrongco", "warning"), ("dupbank", "warning"), ("fake", "warning"),
+    ("letter", "warning"), ("template", "warning"), ("wrongdoc", "warning"), ("unsigned", "warning"),
+    ("taxmismatch", "warning"), ("scanned", "success"), ("blocked", "error"),
 ])
 def test_each_scenario_ends_with_the_expected_banner(app, key, alert):
     run_scenario(app, key)
@@ -53,10 +63,34 @@ def test_blank_form_lists_everything_missing(app):
     assert "tax registration document" in app.code[0].value
 
 
-def test_scanned_scenario_without_ai_reports_a_technical_error(app):
+def test_scanned_scenario_without_ai_reports_a_technical_error(app_without_ai):
+    run_scenario(app_without_ai, "scanned")
+    assert app_without_ai.warning and "technical" not in app_without_ai.error  # PENDING, not a crash
+    assert not app_without_ai.exception
+
+
+def test_the_fake_w9_is_stopped_by_the_genuine_form_check(app):
+    run_scenario(app, "fake")
+    text = " ".join(m.value for m in app.markdown)
+    assert "Genuine IRS form: **fail**" in text
+    assert "official IRS Form W-9" in app.code[0].value  # the vendor is told what to send instead
+    assert "A person needs to review" in app.warning[0].value
+
+
+def test_the_demo_order_needs_no_reset_between_scenarios(app):
+    """Each approving scenario has its own vendor, so approving one never blocks the next."""
+    run_scenario(app, "happy")
+    assert app.success
+    first = run_scenario(app, "dba")
+    assert app.warning  # PENDING, not a duplicate of the happy path vendor
+    app.selectbox(key=f"rs_support_{first}").select(presets.PROOF_SAMPLE).run()
+    app.button(key=f"rs_go_{first}").click().run()
+    assert app.success and not app.exception  # the resubmission is APPROVED
     run_scenario(app, "scanned")
-    assert app.warning and "technical" not in app.error  # PENDING, not a crash
-    assert not app.exception
+    assert app.success  # a third approving scenario, a third vendor
+    app.switch_page("app_pages/dashboard.py").run()
+    values = {m.label: m.value for m in app.metric}
+    assert values["Approved"] == "3" and values["Pending"] == "1"
 
 
 def test_dba_resubmission_flow_links_runs_and_approves(app):
@@ -202,8 +236,8 @@ def sub(samples, **overrides):
 
 
 def test_runs_dataframe_effective_status_and_queue(session, samples):
-    approved = run_pipeline(session, sub(samples), use_llm=False)
-    pending = run_pipeline(session, sub(samples, bank_account_num="000111222333"), use_llm=False)
+    approved = run_pipeline(session, sub(samples), client=StubModel(), use_llm=True)
+    pending = run_pipeline(session, sub(samples, bank_account_num="000111222333"), client=StubModel(), use_llm=True)
     df = runs_dataframe(session)
     assert kpis(df) == {"Runs": 2, "Approved": 1, "Pending": 1, "Rejected": 0, "Awaiting review": 1}
     assert [d["run_id"] for d in review_queue(session)] == [pending["run_id"]]
@@ -215,24 +249,24 @@ def test_runs_dataframe_effective_status_and_queue(session, samples):
 
 
 def test_request_info_review_leaves_the_queue_but_not_the_pending_state(session, samples):
-    pending = run_pipeline(session, sub(samples, bank_account_num="000111222333"), use_llm=False)
+    pending = run_pipeline(session, sub(samples, bank_account_num="000111222333"), client=StubModel(), use_llm=True)
     add_review(session, pending["run_id"], "Priya", "request_info", "Asked for ownership proof.")
     df = runs_dataframe(session)
     assert df.iloc[0]["Final status"] == "PENDING" and not df.iloc[0]["Needs review"]
 
 
 def test_run_detail_has_findings_events_and_chain(session, samples):
-    first = run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), use_llm=False)
+    first = run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), client=StubModel(), use_llm=True)
     second = run_pipeline(session, {"supporting_documents": [str(samples / "parent_entity_proof.pdf")]},
-                          parent_run_id=first["run_id"], use_llm=False)
+                          parent_run_id=first["run_id"], client=StubModel(), use_llm=True)
     detail = run_detail(session, first["run_id"])
-    assert detail["children"] == [second["run_id"]] and len(detail["findings"]) == 12
+    assert detail["children"] == [second["run_id"]] and len(detail["findings"]) == 13
     assert detail["events"][0]["stage"] == "S1" and detail["findings"][0]["check"] == "Required fields and document"
     assert run_detail(session, "run-nope") is None
 
 
 def test_reset_demo_restores_only_the_seed_vendors(session, samples):
-    run_pipeline(session, sub(samples), use_llm=False)
+    run_pipeline(session, sub(samples), client=StubModel(), use_llm=True)
     assert len(session.scalars(select(Vendor)).all()) == 5
     reset_demo(session)
     assert session.scalars(select(Run)).all() == [] and session.scalars(select(Review)).all() == []

@@ -1,4 +1,5 @@
 """Pipeline runner tests: real sample PDFs, offline parser, no network."""
+from stubs import StubModel
 import json
 
 import pytest
@@ -36,7 +37,7 @@ def submission(samples, doc="w9_valid.pdf", **overrides):
 
 
 def go(session, sub, **kwargs):
-    return run_pipeline(session, sub, use_llm=False, **kwargs)
+    return run_pipeline(session, sub, client=StubModel(), use_llm=True, **kwargs)
 
 
 class FakeClient:
@@ -61,11 +62,11 @@ def test_happy_path_runs_all_stages_and_onboards_the_vendor(session, samples):
     stages = [(e["stage"], e["status"]) for e in result["events"]]
     assert stages[0] == ("S1", "started") and stages[-1] == ("S8", "completed")
     assert {s for s, _ in stages} == {"S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"}
-    assert len(result["findings"]) == 12  # eleven checks plus the grounding finding
+    assert len(result["findings"]) == 13  # twelve checks plus the grounding finding
     run = session.get(Run, result["run_id"])
     assert run.status == "APPROVED" and run.vendor_id and "verified everything" in run.vendor_message
     assert json.loads(run.extracted_json)["tax_id"] == "12-3456789"
-    assert len(session.scalars(select(Finding).where(Finding.run_id == run.id)).all()) == 12
+    assert len(session.scalars(select(Finding).where(Finding.run_id == run.id)).all()) == 13
     assert len(session.scalars(select(StageEvent).where(StageEvent.run_id == run.id)).all()) == len(result["events"])
     assert session.get(Vendor, run.vendor_id).legal_name == "Orion Components LLC"
 
@@ -125,7 +126,7 @@ def test_wrong_attachment_reports_every_problem(session, samples):
 # --- failure handling -------------------------------------------------------------------
 
 def test_scan_without_vision_is_pending_with_a_technical_error(session, samples):
-    result = go(session, submission(samples, doc="w9_scanned.pdf"))
+    result = run_pipeline(session, submission(samples, doc="w9_scanned.pdf"), use_llm=False)  # no model at all
     assert result["status"] == "PENDING" and result["decision"]["technical_errors"]
     assert any(e["stage"] == "S3" and e["status"] == "failed" for e in result["events"])
 
@@ -229,7 +230,7 @@ def test_runner_message_uses_model_opening_when_available(session, samples):
 def test_cache_stores_only_successful_model_results(samples, tmp_path):
     calls = []
 
-    def fake_extractor(path, client=None, use_llm=True):
+    def fake_extractor(path, client=None, use_llm=True, reference=False):
         calls.append(path)
         return {"status": "ok", "source": "gemini-text", "detail": "Extracted by model.", "document_type": "w9",
                 "legal_name": "X", "tax_id": "1", "signed": True, "signed_date": "d", "entity_names": []}

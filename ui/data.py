@@ -19,6 +19,7 @@ CHECK_LABELS = {
     "check_supporting_grounding": "Supporting document grounding",
     "check_tax_id_format": "Tax ID format",
     "check_document_type": "Document type",
+    "check_document_authenticity": "Genuine IRS form",
     "check_signature_and_date": "Signature and date",
     "check_form_document_tax_id": "Form vs document tax ID",
     "check_form_document_name": "Form vs document name",

@@ -7,7 +7,9 @@ check returning an invented result value, can never reach the decision engine lo
 """
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, create_model, field_validator
+
+from .w9_reference import FEATURES
 
 Result = Literal["pass", "warn", "fail", "block", "error", "skipped"]
 DocType = Literal["w9", "vat_certificate", "cra_business_number_letter", "utility_bill",
@@ -57,6 +59,15 @@ class Submission(BaseModel):
         return [str(path) for path in value]
 
 
+# What the model reports about the page layout: one strict boolean per feature in w9_reference.FEATURES.
+Structure = create_model(
+    "Structure",
+    __config__=ConfigDict(extra="ignore"),
+    revision_text=(str | None, None),
+    **{name: (StrictBool, ...) for name in FEATURES},
+)
+
+
 class ModelOutput(BaseModel):
     """What the extraction model must return. Strict on purpose: "true" is not a boolean here."""
     model_config = ConfigDict(extra="ignore")
@@ -68,6 +79,7 @@ class ModelOutput(BaseModel):
     signed: StrictBool | None = None
     signed_date: str | None = None
     entity_names: list[str] = Field(default_factory=list)
+    structure: Structure | None = None
 
     @field_validator("legal_name", "tax_id", "signed_date")
     @classmethod
@@ -98,5 +110,7 @@ class Extraction(BaseModel):
     signed: StrictBool | None = None
     signed_date: str | None = None
     entity_names: list[str] = Field(default_factory=list)
+    structure: dict | None = None
+    text_signature: dict | None = None
     supporting_documents: list[dict] = Field(default_factory=list)
     sources: list[str] = Field(default_factory=list)

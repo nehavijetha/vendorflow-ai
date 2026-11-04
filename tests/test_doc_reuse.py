@@ -1,4 +1,5 @@
 """Document reuse: the same file (by content) under a different tax ID, outside the resubmission chain."""
+from stubs import StubModel
 import shutil
 
 import pytest
@@ -103,68 +104,68 @@ def sub(samples, doc="w9_valid.pdf", **overrides):
 
 def test_every_run_stores_the_hash_of_its_files(session, samples):
     result = run_pipeline(session, sub(samples) | {"supporting_documents": [str(samples / "parent_entity_proof.pdf")]},
-                          use_llm=False)
+                          client=StubModel(), use_llm=True)
     rows = session.scalars(select(Document).where(Document.run_id == result["run_id"])).all()
     assert {(r.role, r.filename) for r in rows} == {("tax", "w9_valid.pdf"), ("supporting", "parent_entity_proof.pdf")}
     assert {r.sha256 for r in rows} >= {file_sha256(samples / "w9_valid.pdf")}
 
 
 def test_a_copied_document_submitted_for_another_vendor_goes_to_manual_review(session, samples):
-    run_pipeline(session, sub(samples), use_llm=False)
+    run_pipeline(session, sub(samples), client=StubModel(), use_llm=True)
     copy = samples / "copied_under_a_new_name.pdf"
     shutil.copy(samples / "w9_valid.pdf", copy)
     result = run_pipeline(session, sub(samples, tax_id="98-7654322", company_name="Other Vendor LLC",
                                        bank_account_name="Other Vendor LLC", bank_account_num="000222333444")
-                          | {"documents": [str(copy)]}, use_llm=False)
+                          | {"documents": [str(copy)]}, client=StubModel(), use_llm=True)
     assert result["status"] == "PENDING" and "check_document_reuse" in result["decision"]["unresolved"]
     assert result["decision"]["requires_human_review"]
     assert "run-" not in result["vendor_message"]
 
 
 def test_the_same_vendor_submitting_again_is_not_a_reuse_flag(session, samples):
-    run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), use_llm=False)
-    again = run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), use_llm=False)
+    run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), client=StubModel(), use_llm=True)
+    again = run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), client=StubModel(), use_llm=True)
     finding = {f["id"]: f for f in again["findings"]}["check_document_reuse"]
     assert finding["result"] == "pass"
 
 
 def test_a_corrected_resubmission_never_flags_itself(session, samples):
     """The correction changes the tax ID but reuses the same file: same chain, so no flag."""
-    first = run_pipeline(session, sub(samples, tax_id="12-3456780"), use_llm=False)
-    fixed = run_pipeline(session, {"tax_id": "12-3456789"}, parent_run_id=first["run_id"], use_llm=False)
+    first = run_pipeline(session, sub(samples, tax_id="12-3456780"), client=StubModel(), use_llm=True)
+    fixed = run_pipeline(session, {"tax_id": "12-3456789"}, parent_run_id=first["run_id"], client=StubModel(), use_llm=True)
     finding = {f["id"]: f for f in fixed["findings"]}["check_document_reuse"]
     assert finding["result"] == "pass"
-    sibling = run_pipeline(session, {"tax_id": "12-3456788"}, parent_run_id=first["run_id"], use_llm=False)
+    sibling = run_pipeline(session, {"tax_id": "12-3456788"}, parent_run_id=first["run_id"], client=StubModel(), use_llm=True)
     assert {f["id"]: f for f in sibling["findings"]}["check_document_reuse"]["result"] == "pass"
 
 
 def test_chain_ids_cover_the_root_and_every_descendant(session, samples):
-    first = run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), use_llm=False)
-    second = run_pipeline(session, {"tax_id": "12-3456789"}, parent_run_id=first["run_id"], use_llm=False)
-    third = run_pipeline(session, {"tax_id": "12-3456789"}, parent_run_id=second["run_id"], use_llm=False)
+    first = run_pipeline(session, sub(samples, bank_account_name="Orion Components Holdings LLC"), client=StubModel(), use_llm=True)
+    second = run_pipeline(session, {"tax_id": "12-3456789"}, parent_run_id=first["run_id"], client=StubModel(), use_llm=True)
+    third = run_pipeline(session, {"tax_id": "12-3456789"}, parent_run_id=second["run_id"], client=StubModel(), use_llm=True)
     expected = {first["run_id"], second["run_id"], third["run_id"]}
     for member in expected:
         assert chain_run_ids(session, member) == expected
-    unrelated = run_pipeline(session, sub(samples, doc="w9_unsigned.pdf"), use_llm=False)
+    unrelated = run_pipeline(session, sub(samples, doc="w9_unsigned.pdf"), client=StubModel(), use_llm=True)
     assert unrelated["run_id"] not in chain_run_ids(session, first["run_id"])
     assert chain_run_ids(session, None) == set()
 
 
 def test_a_run_with_no_document_skips_the_check_without_a_technical_error(session, samples):
-    result = run_pipeline(session, sub(samples) | {"documents": []}, use_llm=False)
+    result = run_pipeline(session, sub(samples) | {"documents": []}, client=StubModel(), use_llm=True)
     assert {f["id"]: f for f in result["findings"]}["check_document_reuse"]["result"] == "skipped"
     assert not result["decision"]["technical_errors"]
 
 
 def test_reset_demo_clears_stored_documents(session, samples):
-    run_pipeline(session, sub(samples), use_llm=False)
+    run_pipeline(session, sub(samples), client=StubModel(), use_llm=True)
     assert session.scalars(select(Document)).all()
     reset_demo(session)
     assert session.scalars(select(Document)).all() == [] and session.scalars(select(Run)).all() == []
 
 
 def test_a_missing_file_is_not_hashed_and_does_not_crash(session, samples):
-    result = run_pipeline(session, sub(samples) | {"documents": [str(samples / "nope.pdf")]}, use_llm=False)
+    result = run_pipeline(session, sub(samples) | {"documents": [str(samples / "nope.pdf")]}, client=StubModel(), use_llm=True)
     assert result["error"] is None and session.scalars(select(Document).where(Document.run_id == result["run_id"])).all() == []
 
 

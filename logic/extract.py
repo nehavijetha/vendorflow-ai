@@ -20,7 +20,7 @@ from pypdf import PdfReader
 
 from pydantic import ValidationError
 
-from . import config, settings
+from . import config, settings, w9_reference
 from .models import Extraction, ModelOutput
 
 DOC_TYPES = [*config.REQUIRED_DOCUMENT.values(), "utility_bill", config.RELATIONSHIP_PROOF_TYPE, "other"]
@@ -38,11 +38,19 @@ SYSTEM_PROMPT = (
     "dba_or_parent_proof (certificate of ownership, assumed name / DBA, or parent-entity proof), or other.\n"
     "- legal_name: the registered legal name of the taxpayer or business, else null.\n"
     "- tax_id: the tax identification number exactly as printed, else null.\n"
-    "- signed: true only if a signature is present in the signature field (a typed '(signed)' marker "
-    "counts), false if the signature field is blank, null if the document type has no signature.\n"
+    "- signed: true only if a signature is present in the signature field (a handwritten or drawn "
+    "signature, or a typed '(signed)' marker), false if the signature field is blank, null if the document "
+    "type has no signature.\n"
     "- signed_date: the signature, issue or certificate date as YYYY-MM-DD, else null.\n"
     "- entity_names: every distinct legal entity named, for dba_or_parent_proof documents; otherwise [].\n"
-    "- legible: false if the content cannot be read well enough to extract fields."
+    "- legible: false if the content cannot be read well enough to extract fields.\n"
+    "- structure: null unless a REFERENCE image of the official IRS Form W-9 is supplied. When it is, compare "
+    "ONLY what is visibly present on the submitted page images against the reference and report each layout "
+    "feature as true or false. Judge by the pictures: ruled lines, boxes, cells and printed layout. A page that "
+    "merely mentions the form, or retypes its wording as plain text without the ruled, boxed layout, must have "
+    "same_ruled_layout false and the layout features it lacks false. Never infer a feature from text alone. "
+    "Features:\n" + "\n".join(f"  {name}: {help_}" for name, help_ in w9_reference.FEATURES.items()) + "\n"
+    "  revision_text: the form revision printed on the page (for example 'Rev. March 2024'), else null."
 )
 
 RESPONSE_SCHEMA = {
@@ -55,6 +63,15 @@ RESPONSE_SCHEMA = {
         "signed": {"type": "BOOLEAN", "nullable": True},
         "signed_date": {"type": "STRING", "nullable": True},
         "entity_names": {"type": "ARRAY", "items": {"type": "STRING"}},
+        "structure": {
+            "type": "OBJECT",
+            "nullable": True,
+            "properties": {
+                **{name: {"type": "BOOLEAN"} for name in w9_reference.FEATURES},
+                "revision_text": {"type": "STRING", "nullable": True},
+            },
+            "required": list(w9_reference.FEATURES),
+        },
     },
     "required": ["legible", "document_type"],
 }
@@ -68,7 +85,7 @@ class GeminiClient:
     """Tries each configured model in order. The free tier allows ~20 requests/day per model, so a
     model that is out of quota (or failing) is skipped for a while and the next one is used."""
 
-    def __init__(self, api_key=None, model=None, models=None, timeout=45, retries=1, cooldown=60,
+    def __init__(self, api_key=None, model=None, models=None, timeout=60, retries=1, cooldown=60,
                  quota_cooldown=3600):
         self.api_key = api_key or settings.get("GEMINI_API_KEY")
         if models:
@@ -258,13 +275,20 @@ def offline_parse(text):
 
 def _result(status, source, detail, fields=None):
     base = {"status": status, "source": source, "detail": detail, "document_type": None, "legal_name": None,
-            "tax_id": None, "signed": None, "signed_date": None, "entity_names": []}
+            "tax_id": None, "signed": None, "signed_date": None, "entity_names": [],
+            "structure": None, "text_signature": None}
     if fields:
         base.update({k: v for k, v in fields.items() if k != "legible"})
     return base
 
 
-def extract_document(path, client=None, use_llm=True):
+def _image_part(png):
+    return {"inline_data": {"mime_type": "image/png", "data": base64.b64encode(png).decode()}}
+
+
+def extract_document(path, client=None, use_llm=True, reference=False):
+    """Read one document. With reference=True the official W-9 is shown to the model beside the
+    submitted pages so it can report layout observations, and the text signature is computed locally."""
     path = Path(path)
     try:
         text = read_text(path)
@@ -274,47 +298,59 @@ def extract_document(path, client=None, use_llm=True):
         return _result("unreadable", "none", f"PDF could not be opened ({exc.__class__.__name__}).")
 
     has_text = len(text.strip()) >= MIN_TEXT_CHARS
+    signature = w9_reference.text_signature(text) if reference else None
     client = client if client is not None else (default_client() if use_llm else None)
 
     if client is not None:
         try:
-            if has_text:
+            if reference:
+                images = render_pages(path, max_pages=2)
+                if not images:
+                    raise ExtractionError("PDF has no pages to render.")
+                parts = [
+                    {"text": "REFERENCE: page 1 of the official IRS Form W-9 (" + w9_reference.REVISION + "):"},
+                    _image_part(w9_reference.reference_image_png()),
+                    {"text": "SUBMITTED DOCUMENT text layer (empty for a scan):\n\n" + text},
+                    {"text": "SUBMITTED DOCUMENT page images follow."},
+                    *[_image_part(img) for img in images],
+                ]
+                source = "gemini-text+layout" if has_text else "gemini-vision"
+            elif has_text:
                 parts = [{"text": "Document text:\n\n" + text}]
                 source = "gemini-text"
             else:
                 images = render_pages(path)
                 if not images:
                     raise ExtractionError("PDF has no pages to render.")
-                parts = [{"text": "Document page images follow."}] + [
-                    {"inline_data": {"mime_type": "image/png", "data": base64.b64encode(img).decode()}}
-                    for img in images
-                ]
+                parts = [{"text": "Document page images follow."}] + [_image_part(img) for img in images]
                 source = "gemini-vision"
             fields = validate(client.generate(parts))
+            fields["text_signature"] = signature
             if not fields["legible"]:
                 return _result("unreadable", source, "Model reported the document as illegible.", fields)
             return _result("ok", source, "Extracted by model.", fields)
         except ExtractionError as exc:
             if not has_text:
-                return _result("error", "gemini-vision", str(exc))
+                return _result("error", "gemini-vision", str(exc), {"text_signature": signature})
             api_note = f"{exc} Used offline parser instead."
     else:
         api_note = "No API client configured; used offline parser."
 
     if not has_text:
-        return _result("error", "none", "Scanned document needs a vision model, which is unavailable.")
-    return _result("ok", "offline_parser", api_note, offline_parse(text))
+        return _result("error", "none", "Scanned document needs a vision model, which is unavailable.",
+                       {"text_signature": signature})
+    return _result("ok", "offline_parser", api_note, {**offline_parse(text), "text_signature": signature})
 
 
-def build_extracted(primary_path, supporting_paths=(), client=None, use_llm=True, extractor=None):
+def build_extracted(primary_path, supporting_paths=(), client=None, use_llm=True, extractor=None, expected_type=None):
     """Combine the tax document and any supporting documents into the shape the checks read.
     `extractor` lets callers wrap extract_document (for example with a cache)."""
     extractor = extractor or extract_document
-    primary = extractor(primary_path, client, use_llm)
+    primary = extractor(primary_path, client, use_llm, expected_type == "w9")
     supporting = []
     notes = [f"{Path(primary_path).name}: {primary['source']}"]
     for path in supporting_paths:
-        doc = extractor(path, client, use_llm)
+        doc = extractor(path, client, use_llm, False)
         notes.append(f"{Path(path).name}: {doc['source']}")
         if doc["status"] == "ok" and doc["document_type"] == config.RELATIONSHIP_PROOF_TYPE:
             supporting.append({"document_type": doc["document_type"], "entity_names": doc["entity_names"],
@@ -322,6 +358,6 @@ def build_extracted(primary_path, supporting_paths=(), client=None, use_llm=True
     return Extraction(
         status=primary["status"], source=primary["source"], detail=primary["detail"],
         document_type=primary["document_type"], legal_name=primary["legal_name"], tax_id=primary["tax_id"],
-        signed=primary["signed"], signed_date=primary["signed_date"],
-        supporting_documents=supporting, sources=notes,
+        signed=primary["signed"], signed_date=primary["signed_date"], structure=primary["structure"],
+        text_signature=primary["text_signature"], supporting_documents=supporting, sources=notes,
     ).model_dump()

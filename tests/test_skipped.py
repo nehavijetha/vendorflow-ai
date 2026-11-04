@@ -66,7 +66,7 @@ def test_missing_document_is_one_failure_and_the_rest_skip(submission, vendors):
     assert decision["unresolved"] == ["check_required_fields"]
     assert set(decision["skipped"]) == {"check_document_type", "check_signature_and_date",
                                        "check_form_document_tax_id", "check_form_document_name",
-                                       "check_document_reuse"}
+                                       "check_document_reuse", "check_document_authenticity"}
     assert decision["status"] == "PENDING" and not decision["technical_errors"]
 
 
@@ -94,7 +94,7 @@ def test_missing_inputs_skip_the_duplicate_checks(submission, extracted, vendors
 
 def test_every_check_can_skip_without_crashing_on_an_empty_submission(vendors):
     findings = evaluate_submission({}, None, vendors)
-    assert len(findings) == len(CHECKS)
+    assert len(findings) == len(CHECKS) - 1  # the authenticity check does not apply to an unknown country
     assert all(f["result"] in ("pass", "skipped", "fail", "error", "warn", "block") for f in findings)
     assert determine_status(findings) == "PENDING"
 

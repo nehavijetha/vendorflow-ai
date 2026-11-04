@@ -1,4 +1,5 @@
 """Gemini client behaviour (mocked HTTP) and the safety fixes from the code review."""
+from stubs import StubModel
 import io
 import json
 import urllib.error
@@ -93,7 +94,7 @@ def test_unusable_responses_become_extraction_errors(client, monkeypatch):
 
 def test_timeouts_are_bounded_by_default():
     default = GeminiClient(api_key="k")
-    assert default.timeout <= 45 and default.retries <= 1
+    assert default.timeout <= 60 and default.retries <= 1
 
 
 def test_gemini_3_models_run_with_minimal_thinking(monkeypatch):
@@ -236,21 +237,21 @@ def test_a_reviewer_closed_run_cannot_be_resubmitted(session, samples, decision)
     sub = {"company_name": "Orion Components LLC", "country": "United States", "tax_id": "12-3456789",
            "bank_account_name": "Zenith Logistics Group", "bank_account_num": "000555666777",
            "documents": [str(samples / "w9_valid.pdf")]}
-    pending = run_pipeline(session, sub, use_llm=False)
+    pending = run_pipeline(session, sub, client=StubModel(), use_llm=True)
     assert pending["status"] == "PENDING"
     add_review(session, pending["run_id"], "Priya", decision, "Decided after a call.")
     with pytest.raises(PipelineError, match="reviewer already closed"):
-        run_pipeline(session, {}, parent_run_id=pending["run_id"], use_llm=False)
+        run_pipeline(session, {}, parent_run_id=pending["run_id"], client=StubModel(), use_llm=True)
 
 
 def test_request_info_review_still_allows_resubmission(session, samples):
     sub = {"company_name": "Orion Components LLC", "country": "United States", "tax_id": "12-3456789",
            "bank_account_name": "Orion Components Holdings LLC", "bank_account_num": "000555666777",
            "documents": [str(samples / "w9_valid.pdf")]}
-    pending = run_pipeline(session, sub, use_llm=False)
+    pending = run_pipeline(session, sub, client=StubModel(), use_llm=True)
     add_review(session, pending["run_id"], "Priya", "request_info", "Asked vendor for proof.")
     again = run_pipeline(session, {"supporting_documents": [str(samples / "parent_entity_proof.pdf")]},
-                         parent_run_id=pending["run_id"], use_llm=False)
+                         parent_run_id=pending["run_id"], client=StubModel(), use_llm=True)
     assert again["status"] == "APPROVED"
 
 

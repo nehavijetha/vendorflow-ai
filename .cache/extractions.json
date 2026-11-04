@@ -1,16 +1,394 @@
 {
- "b0ae4373c77a87918f593c9ff37a8f66310a508b43793ccf464fe95225ee86e1:25da4be5ec69": {
+ "ac082302b53ad50ef0084d52e1e836bce3c46ce99ecf640cc5c48b7a1b0dabf9:459131481a10:w9": {
   "status": "ok",
-  "source": "gemini-text",
+  "source": "gemini-text+layout",
   "detail": "Extracted by model.",
   "document_type": "w9",
   "legal_name": "Orion Components LLC",
   "tax_id": "12-3456789",
   "signed": true,
   "signed_date": "2026-10-28",
-  "entity_names": []
+  "entity_names": [],
+  "structure": {
+   "revision_text": null,
+   "header_block": false,
+   "line1_name_box": false,
+   "line2_business_box": false,
+   "tax_classification_boxes": false,
+   "exemptions_box": false,
+   "address_lines": false,
+   "tin_boxes": false,
+   "certification_text": false,
+   "sign_here_block": false,
+   "form_footer": false,
+   "same_ruled_layout": false
+  },
+  "text_signature": {
+   "matched": 2,
+   "total": 18,
+   "missing": [
+    "form title",
+    "give form to the requester",
+    "Department of the Treasury",
+    "Internal Revenue Service",
+    "irs.gov/FormW9 address",
+    "Line 1 label",
+    "Line 2 label",
+    "Line 3a wording",
+    "Part I heading",
+    "Part II perjury wording",
+    "Cat. No.",
+    "footer revision",
+    "header revision",
+    "exempt payee code",
+    "backup withholding wording",
+    "FATCA wording"
+   ],
+   "layer": true
+  }
  },
- "76a6c89e58c51bbef47c4fe8cbbf1c3354afed32e9fd68a05c06a04b3a7fb101:c4b19783e3c7": {
+ "16e88aed822255bbd2efbf6c0fa1ce0c46a940284bc8ca4334dcafccf41d7dc9:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "other",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": null,
+  "signed_date": null,
+  "entity_names": [],
+  "structure": null,
+  "text_signature": {
+   "matched": 0,
+   "total": 18,
+   "missing": [
+    "form title",
+    "give form to the requester",
+    "Department of the Treasury",
+    "Internal Revenue Service",
+    "irs.gov/FormW9 address",
+    "Line 1 label",
+    "Line 2 label",
+    "Line 3a wording",
+    "Part I heading",
+    "EIN box label",
+    "Part II perjury wording",
+    "signature label",
+    "Cat. No.",
+    "footer revision",
+    "header revision",
+    "exempt payee code",
+    "backup withholding wording",
+    "FATCA wording"
+   ],
+   "layer": true
+  }
+ },
+ "19726a9b91c0a725faa64daea3df5e0740770b4658f01752a202b9e7580eb283:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": [],
+  "structure": {
+   "revision_text": null,
+   "header_block": false,
+   "line1_name_box": false,
+   "line2_business_box": false,
+   "tax_classification_boxes": false,
+   "exemptions_box": false,
+   "address_lines": false,
+   "tin_boxes": false,
+   "certification_text": false,
+   "sign_here_block": false,
+   "form_footer": false,
+   "same_ruled_layout": false
+  },
+  "text_signature": {
+   "matched": 18,
+   "total": 18,
+   "missing": [],
+   "layer": true
+  }
+ },
+ "3f1f59f349315d7831a871bdf5c9251455e4bb680cef1b581e8e284781b80ab7:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "utility_bill",
+  "legal_name": "Orion Components LLC",
+  "tax_id": null,
+  "signed": null,
+  "signed_date": null,
+  "entity_names": [],
+  "structure": null,
+  "text_signature": {
+   "matched": 0,
+   "total": 18,
+   "missing": [
+    "form title",
+    "give form to the requester",
+    "Department of the Treasury",
+    "Internal Revenue Service",
+    "irs.gov/FormW9 address",
+    "Line 1 label",
+    "Line 2 label",
+    "Line 3a wording",
+    "Part I heading",
+    "EIN box label",
+    "Part II perjury wording",
+    "signature label",
+    "Cat. No.",
+    "footer revision",
+    "header revision",
+    "exempt payee code",
+    "backup withholding wording",
+    "FATCA wording"
+   ],
+   "layer": true
+  }
+ },
+ "ca65bb5a9bbd5275cb7b926904a935062793b8049f2a47bbd1b1c96a30502728:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": null,
+  "tax_id": null,
+  "signed": false,
+  "signed_date": null,
+  "entity_names": [],
+  "structure": {
+   "revision_text": "Rev. 3-2024",
+   "header_block": true,
+   "line1_name_box": true,
+   "line2_business_box": true,
+   "tax_classification_boxes": true,
+   "exemptions_box": true,
+   "address_lines": true,
+   "tin_boxes": true,
+   "certification_text": true,
+   "sign_here_block": true,
+   "form_footer": true,
+   "same_ruled_layout": true
+  },
+  "text_signature": {
+   "matched": 18,
+   "total": 18,
+   "missing": [],
+   "layer": true
+  }
+ },
+ "201edfd64bf77afba1b1bce20dd60a6115556b6ebf948b283a1f220acd8aaf94:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Shadow Supplies LLC",
+  "tax_id": "55-5555555",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": [],
+  "structure": {
+   "revision_text": "Rev. 3-2024",
+   "header_block": true,
+   "line1_name_box": true,
+   "line2_business_box": true,
+   "tax_classification_boxes": true,
+   "exemptions_box": true,
+   "address_lines": true,
+   "tin_boxes": true,
+   "certification_text": true,
+   "sign_here_block": true,
+   "form_footer": true,
+   "same_ruled_layout": true
+  },
+  "text_signature": {
+   "matched": 18,
+   "total": 18,
+   "missing": [],
+   "layer": true
+  }
+ },
+ "ee59a7f4a1eaabeb1ed94b1c93f961da56d065394933a120875d232b15f96198:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Meridian Tools LLC",
+  "tax_id": "20-4417283",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": [],
+  "structure": {
+   "revision_text": "Rev. 3-2024",
+   "header_block": true,
+   "line1_name_box": true,
+   "line2_business_box": true,
+   "tax_classification_boxes": true,
+   "exemptions_box": true,
+   "address_lines": true,
+   "tin_boxes": true,
+   "certification_text": true,
+   "sign_here_block": true,
+   "form_footer": true,
+   "same_ruled_layout": true
+  },
+  "text_signature": {
+   "matched": 18,
+   "total": 18,
+   "missing": [],
+   "layer": true
+  }
+ },
+ "d8309bf7a0a7d760397ce31d5bee2d877b8318ecf3c5451dfa98c43f4371734d:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-vision",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Cobalt Freight Inc",
+  "tax_id": "84-2201937",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": [],
+  "structure": {
+   "revision_text": "Rev. 3-2024",
+   "header_block": true,
+   "line1_name_box": true,
+   "line2_business_box": true,
+   "tax_classification_boxes": true,
+   "exemptions_box": true,
+   "address_lines": true,
+   "tin_boxes": true,
+   "certification_text": true,
+   "sign_here_block": true,
+   "form_footer": true,
+   "same_ruled_layout": true
+  },
+  "text_signature": {
+   "matched": 0,
+   "total": 18,
+   "missing": [
+    "form title",
+    "give form to the requester",
+    "Department of the Treasury",
+    "Internal Revenue Service",
+    "irs.gov/FormW9 address",
+    "Line 1 label",
+    "Line 2 label",
+    "Line 3a wording",
+    "Part I heading",
+    "EIN box label",
+    "Part II perjury wording",
+    "signature label",
+    "Cat. No.",
+    "footer revision",
+    "header revision",
+    "exempt payee code",
+    "backup withholding wording",
+    "FATCA wording"
+   ],
+   "layer": false
+  }
+ },
+ "8d07b6fd16b4fa733ae634d91e322dfd8b2016e02951560be4140e141732d6b8:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456780",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": [],
+  "structure": {
+   "revision_text": "Rev. 3-2024",
+   "header_block": true,
+   "line1_name_box": true,
+   "line2_business_box": true,
+   "tax_classification_boxes": true,
+   "exemptions_box": true,
+   "address_lines": true,
+   "tin_boxes": true,
+   "certification_text": true,
+   "sign_here_block": true,
+   "form_footer": true,
+   "same_ruled_layout": true
+  },
+  "text_signature": {
+   "matched": 18,
+   "total": 18,
+   "missing": [],
+   "layer": true
+  }
+ },
+ "0491c8c4327641dd2e375210f0a68b9206891c8c6cc9094cdae0e4021526e220:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": false,
+  "signed_date": null,
+  "entity_names": [],
+  "structure": {
+   "revision_text": "Rev. March 2024",
+   "header_block": true,
+   "line1_name_box": true,
+   "line2_business_box": true,
+   "tax_classification_boxes": true,
+   "exemptions_box": true,
+   "address_lines": true,
+   "tin_boxes": true,
+   "certification_text": true,
+   "sign_here_block": true,
+   "form_footer": true,
+   "same_ruled_layout": true
+  },
+  "text_signature": {
+   "matched": 18,
+   "total": 18,
+   "missing": [],
+   "layer": true
+  }
+ },
+ "1f861526d3538d0c2b6d9220d76e57a3e8185aaf73bfcb908f0b90c3100d6317:459131481a10:w9": {
+  "status": "ok",
+  "source": "gemini-text+layout",
+  "detail": "Extracted by model.",
+  "document_type": "w9",
+  "legal_name": "Orion Components LLC",
+  "tax_id": "12-3456789",
+  "signed": true,
+  "signed_date": "2026-10-28",
+  "entity_names": [],
+  "structure": {
+   "revision_text": "Rev. 3-2024",
+   "header_block": true,
+   "line1_name_box": true,
+   "line2_business_box": true,
+   "tax_classification_boxes": true,
+   "exemptions_box": true,
+   "address_lines": true,
+   "tin_boxes": true,
+   "certification_text": true,
+   "sign_here_block": true,
+   "form_footer": true,
+   "same_ruled_layout": true
+  },
+  "text_signature": {
+   "matched": 18,
+   "total": 18,
+   "missing": [],
+   "layer": true
+  }
+ },
+ "99e69ae93e10864290c850b25b2c18fec67d5fa77ff877c22794d55cbf7cc492:459131481a10": {
   "status": "ok",
   "source": "gemini-text",
   "detail": "Extracted by model.",
@@ -22,72 +400,8 @@
   "entity_names": [
    "Orion Components LLC",
    "Orion Components Holdings LLC"
-  ]
- },
- "1b0cef2de20accc6717baf63441d5555c33a61120f4ce1d9e8f424ac0c455bfa:c4b19783e3c7": {
-  "status": "ok",
-  "source": "gemini-text",
-  "detail": "Extracted by model.",
-  "document_type": "utility_bill",
-  "legal_name": "Orion Components LLC",
-  "tax_id": null,
-  "signed": null,
-  "signed_date": null,
-  "entity_names": []
- },
- "4e4c42932417b593e0f600e91f0e39a9d9d73812a7d0d2c6684a5fa3904bfeb2:c4b19783e3c7": {
-  "status": "ok",
-  "source": "gemini-text",
-  "detail": "Extracted by model.",
-  "document_type": "w9",
-  "legal_name": "Shadow Supplies LLC",
-  "tax_id": "55-5555555",
-  "signed": true,
-  "signed_date": "2026-10-28",
-  "entity_names": []
- },
- "51caa4afa775bea0f55d339f332d6585291f362ead18395b28de47e010bbc3a3:c4b19783e3c7": {
-  "status": "ok",
-  "source": "gemini-vision",
-  "detail": "Extracted by model.",
-  "document_type": "w9",
-  "legal_name": "Orion Components LLC",
-  "tax_id": "12-3456789",
-  "signed": true,
-  "signed_date": "2026-10-28",
-  "entity_names": []
- },
- "f831fdb8f97cfc2e150c365233bb460d00653d8dcf38b40f317b8a3f96f09e25:c4b19783e3c7": {
-  "status": "ok",
-  "source": "gemini-text",
-  "detail": "Extracted by model.",
-  "document_type": "w9",
-  "legal_name": "Orion Components LLC",
-  "tax_id": "12-3456780",
-  "signed": true,
-  "signed_date": "2026-10-28",
-  "entity_names": []
- },
- "74fe5963dc7b99c7aa83fe1c60babe1bd499eb4227859c536e9a54f791740f84:c4b19783e3c7": {
-  "status": "ok",
-  "source": "gemini-text",
-  "detail": "Extracted by model.",
-  "document_type": "w9",
-  "legal_name": "Orion Components LLC",
-  "tax_id": "12-3456789",
-  "signed": false,
-  "signed_date": null,
-  "entity_names": []
- },
- "b0ae4373c77a87918f593c9ff37a8f66310a508b43793ccf464fe95225ee86e1:c4b19783e3c7": {
-  "status": "ok",
-  "source": "gemini-text",
-  "detail": "Extracted by model.",
-  "document_type": "w9",
-  "legal_name": "Orion Components LLC",
-  "tax_id": "12-3456789",
-  "signed": true,
-  "signed_date": "2026-10-28",
-  "entity_names": []
+  ],
+  "structure": null,
+  "text_signature": null
  }
 }

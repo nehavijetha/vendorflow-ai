@@ -17,7 +17,7 @@ def run(submission, extracted, vendors):
 
 def test_happy_path(submission, extracted, vendors):
     by_id, decision = run(submission, extracted, vendors)
-    assert len(by_id) == 11
+    assert len(by_id) == 12
     assert all(f["result"] == "pass" for f in by_id.values())
     assert decision["status"] == "APPROVED"
     assert decision["vendor_requests"] == []
@@ -173,7 +173,7 @@ def test_three_independent_problems_yield_three_findings(submission, extracted, 
     submission["bank_account_name"] = "Orion Components Holdings LLC"  # partial name match
     extracted.update(signed=False, signed_date=None)  # unsigned
     by_id, decision = run(submission, extracted, vendors)
-    assert len(by_id) == 11
+    assert len(by_id) == 12
     problems = {k for k, f in by_id.items() if f["result"] != "pass"}
     assert {"check_tax_id_format", "check_company_bank_name", "check_signature_and_date"} <= problems
     assert decision["status"] == "PENDING"
@@ -221,7 +221,7 @@ def test_crashing_check_becomes_error_and_others_still_run(submission, extracted
 def test_on_finding_callback_receives_each_finding(submission, extracted, vendors):
     seen = []
     evaluate_submission(submission, extracted, vendors, on_finding=seen.append, history=clean_history(submission))
-    assert len(seen) == 11
+    assert len(seen) == 12
 
 
 def test_decision_engine_edge_inputs():

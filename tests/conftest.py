@@ -7,6 +7,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from db.seed import SEED_VENDORS  # noqa: E402
+from logic import w9_reference  # noqa: E402
 
 
 @pytest.fixture
@@ -35,5 +36,7 @@ def extracted():
         "tax_id": "12-3456789",
         "signed": True,
         "signed_date": "2026-10-28",
+        "text_signature": {"matched": 18, "total": 18, "missing": [], "layer": True},
+        "structure": {**{name: True for name in w9_reference.FEATURES}, "revision_text": "Rev. March 2024"},
         "supporting_documents": [],
     }

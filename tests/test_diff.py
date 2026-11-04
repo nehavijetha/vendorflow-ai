@@ -1,4 +1,5 @@
 """Resubmission diff: findings matched by check id between a run and its parent."""
+from stubs import StubModel
 import pytest
 
 from db.models import make_session_factory
@@ -92,9 +93,9 @@ def sub(samples, **overrides):
 
 
 def test_dba_resubmission_diff_end_to_end(session, samples):
-    first = run_pipeline(session, sub(samples), use_llm=False)
+    first = run_pipeline(session, sub(samples), client=StubModel(), use_llm=True)
     second = run_pipeline(session, {"supporting_documents": [str(samples / "parent_entity_proof.pdf")]},
-                          parent_run_id=first["run_id"], use_llm=False)
+                          parent_run_id=first["run_id"], client=StubModel(), use_llm=True)
     diff = run_diff(session, second["run_id"])
     assert (diff["parent_status"], diff["status"], diff["parent_run_id"]) == ("PENDING", "APPROVED", first["run_id"])
     assert ids(diff["resolved"]) == ["check_company_bank_name"]
@@ -102,14 +103,14 @@ def test_dba_resubmission_diff_end_to_end(session, samples):
 
 
 def test_a_resubmission_that_breaks_something_shows_it_as_new(session, samples):
-    first = run_pipeline(session, sub(samples), use_llm=False)
+    first = run_pipeline(session, sub(samples), client=StubModel(), use_llm=True)
     second = run_pipeline(session, {"tax_id": "12-3456780", "supporting_documents": [str(samples / "parent_entity_proof.pdf")]},
-                          parent_run_id=first["run_id"], use_llm=False)
+                          parent_run_id=first["run_id"], client=StubModel(), use_llm=True)
     diff = run_diff(session, second["run_id"])
     assert "check_form_document_tax_id" in ids(diff["new"]) and "check_company_bank_name" in ids(diff["resolved"])
     assert diff["status"] == "PENDING"
 
 
 def test_original_runs_have_no_diff(session, samples):
-    assert run_diff(session, run_pipeline(session, sub(samples), use_llm=False)["run_id"]) is None
+    assert run_diff(session, run_pipeline(session, sub(samples), client=StubModel(), use_llm=True)["run_id"]) is None
     assert run_diff(session, "run-nope") is None

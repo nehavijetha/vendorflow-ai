@@ -35,6 +35,12 @@ def normalize_account(account):
     return re.sub(r"[^0-9A-Za-z]", "", account or "").upper()
 
 
+def squash(text):
+    """Lowercase ASCII letters and digits only, so spacing, hyphens and accents cannot hide a match."""
+    ascii_text = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
+    return "".join(ch for ch in ascii_text.lower() if ch.isalnum())
+
+
 def split_name(name, country=None):
     """Return (core, suffixes): the name without its trailing legal-form words, and those
     words in canonical form. Only trailing suffix words are touched, and at least one

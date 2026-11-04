@@ -1,4 +1,6 @@
 """Shared app resources and session defaults."""
+from pathlib import Path
+
 import streamlit as st
 
 from db.models import make_session_factory
@@ -8,6 +10,10 @@ from ui import presets
 
 UPLOAD_DIR = presets.ROOT / "uploads"
 CACHE_PATH = presets.ROOT / ".cache" / "extractions.json"
+
+
+def cache_path():
+    return Path(settings.get("VENDORFLOW_CACHE") or CACHE_PATH)
 
 
 @st.cache_resource
@@ -29,4 +35,4 @@ def ai_available():
 def init_session():
     st.session_state.setdefault("use_ai", ai_available())
     st.session_state.setdefault("step_delay", 0.3)
-    CACHE_PATH.parent.mkdir(exist_ok=True)
+    cache_path().parent.mkdir(parents=True, exist_ok=True)

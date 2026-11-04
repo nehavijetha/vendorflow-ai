@@ -45,16 +45,38 @@ def test_seed_is_idempotent_and_duplicates_are_storable(tmp_path):
         assert session.get(Run, "run-2").parent_run_id == "run-1"
 
 
-def test_sample_pdfs_have_expected_text_layers(tmp_path):
-    names = build_all(tmp_path)
-    assert {"w9_valid.pdf", "w9_unsigned.pdf", "w9_scanned.pdf", "utility_bill.pdf",
-            "w9_tax_mismatch.pdf", "parent_entity_proof.pdf"} <= set(names)
+def test_sample_pdfs_have_the_expected_text_layers(tmp_path):
+    from logic.w9_reference import MIN_PHRASES, text_signature
+
+    names = set(build_all(tmp_path))
+    assert {"w9_valid.pdf", "w9_unsigned.pdf", "w9_tax_mismatch.pdf", "w9_meridian.pdf", "w9_blocked.pdf",
+            "w9_blank_template.pdf", "w9_scanned.pdf", "spoof_fake_w9.pdf", "spoof_lookalike_w9.pdf",
+            "spoof_letter_mentions_w9.pdf", "utility_bill.pdf", "parent_entity_proof.pdf"} <= names
 
     def text(name):
         return PdfReader(str(tmp_path / name)).pages[0].extract_text()
 
-    assert "12-3456789" in text("w9_valid.pdf") and "(signed)" in text("w9_valid.pdf")
-    assert "(signed)" not in text("w9_unsigned.pdf")
-    assert "12-3456780" in text("w9_tax_mismatch.pdf")
-    assert text("w9_scanned.pdf").strip() == ""
+    def phrases(name):
+        return text_signature(text(name))["matched"]
+
+    for genuine in ("w9_valid.pdf", "w9_unsigned.pdf", "w9_tax_mismatch.pdf", "w9_meridian.pdf", "w9_blocked.pdf",
+                    "w9_blank_template.pdf"):
+        assert phrases(genuine) == 18, genuine  # the real IRS page: every distinctive phrase is there
+    assert phrases("spoof_lookalike_w9.pdf") == 18  # the wording is all there; only the layout is wrong
+    assert phrases("spoof_fake_w9.pdf") < MIN_PHRASES and phrases("spoof_letter_mentions_w9.pdf") < MIN_PHRASES
+    assert text("w9_scanned.pdf").strip() == ""  # a photocopy: no text layer at all
     assert "Amount due" in text("utility_bill.pdf")
+
+
+def test_sample_forms_carry_the_values_written_on_the_real_form(tmp_path):
+    build_all(tmp_path)
+
+    def squashed(name):
+        from logic.names import squash
+        return squash(PdfReader(str(tmp_path / name)).pages[0].extract_text())
+
+    assert "orioncomponentsllc" in squashed("w9_valid.pdf") and "123456789" in squashed("w9_valid.pdf")
+    assert "123456780" in squashed("w9_tax_mismatch.pdf") and "meridiantoolsllc" in squashed("w9_meridian.pdf")
+    assert "20441728" in squashed("w9_meridian.pdf") and "shadowsuppliesllc" in squashed("w9_blocked.pdf")
+    assert "10282026" in squashed("w9_valid.pdf") and "10282026" not in squashed("w9_unsigned.pdf")  # date only when signed
+    assert "orioncomponentsllc" not in squashed("w9_blank_template.pdf")

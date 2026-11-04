@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 
+from . import w9_reference
 from .extract import RESPONSE_SCHEMA, SYSTEM_PROMPT, extract_document
 
 
@@ -14,11 +15,13 @@ def _fingerprint():
     """Changes when the prompt or schema changes, so stale answers are not reused. The model is not
     part of the key: the client may fall back between models and the answer should still be reused."""
     basis = SYSTEM_PROMPT + json.dumps(RESPONSE_SCHEMA, sort_keys=True)
-    return hashlib.sha256(basis.encode()).hexdigest()[:12]
+    reference = hashlib.sha256(w9_reference.reference_image_png()).hexdigest()  # a new reference invalidates answers
+    return hashlib.sha256((basis + reference).encode()).hexdigest()[:12]
 
 
-def _key(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest() + ":" + _fingerprint()
+def _key(path, reference=False):
+    # The same file is read differently with and without the W-9 reference, so they are cached apart.
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest() + ":" + _fingerprint() + (":w9" if reference else "")
 
 
 def cached_extractor(cache_path, extractor=extract_document):
@@ -30,17 +33,17 @@ def cached_extractor(cache_path, extractor=extract_document):
         except (OSError, ValueError):
             return {}
 
-    def run(path, client=None, use_llm=True):
+    def run(path, client=None, use_llm=True, reference=False):
         try:
-            key = _key(path)
+            key = _key(path, reference)
         except OSError:
-            return extractor(path, client, use_llm)  # let the extractor report the problem
+            return extractor(path, client, use_llm, reference)  # let the extractor report the problem
         store = load()
         if key in store:
             hit = dict(store[key])
             hit["detail"] = hit["detail"] + " (cached)"
             return hit
-        result = extractor(path, client, use_llm)
+        result = extractor(path, client, use_llm, reference)
         if result["status"] == "ok" and result["source"].startswith("gemini"):
             store[key] = result
             cache_path.write_text(json.dumps(store, indent=1), encoding="utf-8")

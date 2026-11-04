@@ -6,7 +6,7 @@ import streamlit as st
 
 from pipeline.runner import STAGE_NAMES, STAGES, PipelineError, run_pipeline
 from ui import presets
-from ui.app_state import CACHE_PATH
+from ui.app_state import cache_path
 from ui.data import check_label
 
 RESULT_COLORS = {
@@ -71,7 +71,7 @@ def run_with_live_view(factory, submission, parent_run_id=None):
             with factory() as session:
                 result = run_pipeline(
                     session, submission, parent_run_id=parent_run_id, use_llm=use_ai,
-                    cache_path=CACHE_PATH, on_event=on_event,
+                    cache_path=cache_path(), on_event=on_event,
                 )
         except PipelineError as exc:
             box.update(label=str(exc), state="error", expanded=True)

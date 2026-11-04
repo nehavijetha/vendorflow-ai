@@ -12,7 +12,7 @@ Finding result values:
 """
 import re
 
-from . import config, taxid
+from . import config, taxid, w9_reference
 from .models import Finding
 from .names import (
     entity_type_conflict,
@@ -179,6 +179,24 @@ def check_document_type(submission, extracted, vendors, history=None):
         cid, "fail", f"Received document type '{received}', expected '{required}'.",
         f"The uploaded document is not the required {label}. Please upload the correct document.",
     )
+
+
+def check_document_authenticity(submission, extracted, vendors, history=None):
+    """Is the document the official IRS form, or only a page that says it is? Decided from the
+    document's own text and the model's layout observations by a fixed rule (logic/w9_reference.py).
+    Not applicable where no reference layout exists (the UK and Canadian documents): returns None."""
+    cid = "check_document_authenticity"
+    if _required_doc_type(submission) != "w9":
+        return None
+    problem = _doc_problem(cid, extracted)
+    if problem:
+        return problem
+    if extracted.get("document_type") != "w9":
+        return _not_assessed(cid, "the document is not a W-9")  # the document type check owns that request
+    result, evidence, review = w9_reference.judge(extracted.get("text_signature"), extracted.get("structure"))
+    if result == "pass":
+        return _finding(cid, "pass", evidence)
+    return _finding(cid, result, evidence, w9_reference.REQUEST if result == "fail" else None, review)
 
 
 def check_signature_and_date(submission, extracted, vendors, history=None):
@@ -359,6 +377,7 @@ CHECKS = [
     check_tax_id_format,
     check_tax_id_checksum,
     check_document_type,
+    check_document_authenticity,
     check_signature_and_date,
     check_form_document_tax_id,
     check_form_document_name,
@@ -377,6 +396,8 @@ def evaluate_submission(submission, extracted, vendors, checks=None, on_finding=
             finding = check(submission, extracted, vendors, history)
         except Exception as exc:  # technical error, not a verification verdict
             finding = _finding(check.__name__, "error", f"Check could not complete: {exc!r}", None, True)
+        if finding is None:  # the check does not apply to this document
+            continue
         findings.append(finding)
         if on_finding:
             on_finding(finding)
